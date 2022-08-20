@@ -18,11 +18,15 @@ userRouter.get('/:id', async (req, res) => {
     return res.json(user)
 })
 
+//this route will remove the refresh token that was received from a specific user
+//user is unable to make requests to specific endpoint after this action
 userRouter.post('/logout', (req, res) => {
     refreshTokens = refreshTokens.filter(token => token !== req.body.token)
     return res.status(204).json({ message: "succesfully logged out" })
 })
 
+//this route handles all our request for new acess tokens
+//we use refresh tokens to create new access tokens
 userRouter.post('/token', (req, res, next) => {
     try {
         const refreshToken = req.body.token
@@ -30,6 +34,8 @@ userRouter.post('/token', (req, res, next) => {
         if (refreshTokens.includes(refreshToken)) {
             const user = jwt.verify(refreshToken, process.env.REFRESH_KEY)
             const newAccessToken = jwt.sign({ username: user.user, id: user.id }, process.env.SECRET_KEY, { expiresIn: "30s" })
+            
+            //sending new access tokens to user if the refresh token validates 
             return res.json(newAccessToken)
         } else {
             return res.status(403).json({ error: "invalid refresh token" })
@@ -38,6 +44,8 @@ userRouter.post('/token', (req, res, next) => {
         next(err)
     }
 })
+
+//when user sends request to /login this router will handle the request
 
 userRouter.post('/login', async (req, res, next) => {
     const { password, username } = req.body
@@ -52,8 +60,11 @@ userRouter.post('/login', async (req, res, next) => {
         username: user.username,
         id: user._id
     }
+    //creating refreshtoken and access token using jwt
     const refreshToken = jwt.sign(userForToken, process.env.REFRESH_KEY);
     const token = jwt.sign(userForToken, process.env.SECRET_KEY, { expiresIn: '30s' })
+
+    //send tokens to user in response body
     return res.status(201).json({ token, refreshToken, username: user.username })
 })
 
@@ -80,6 +91,7 @@ userRouter.post('/register', async (req, res, next) => {
             passwordHash
         }
 
+        //create and save user if no prior user with same credentials is found
         const savedUser = await new User(userObject).save()
         return res.status(201).json(savedUser)
     } catch (err) {
