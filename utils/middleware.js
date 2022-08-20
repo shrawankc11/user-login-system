@@ -1,4 +1,8 @@
-
+/*
+Middleware functions 
+TokenExtrator: to extract token passed by user for tokenRequired endpoints
+errorHandler: express error handler for specific errors
+*/ 
 const tokenExtractor = (req, res, next) => {
     const token = req.get("authorization")
     if (token && token.slice(0, 8).toLowerCase().startsWith('bearer')) {
