@@ -11,6 +11,7 @@ notesRouter.get('/', async (req, res) => {
     return res.json(notes)
 })
 
+//route to handle POST request for new notes 
 notesRouter.post('/', middleware.tokenExtractor, async (req, res, next) => {
     const body = req.body
     try {
