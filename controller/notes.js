@@ -11,7 +11,7 @@ notesRouter.get('/', async (req, res) => {
     return res.json(notes)
 })
 
-notesRouter.post('/', middleware.tokenExtracotr, async (req, res, next) => {
+notesRouter.post('/', middleware.tokenExtractor, async (req, res, next) => {
     const body = req.body
     try {
         const decodedToken = jwt.verify(req.token, process.env.SECRET_KEY)

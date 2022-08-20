@@ -8,7 +8,6 @@ require('dotenv').config()
 //this will be empty when server restarts since we do not have any state
 let refreshTokens = []
 
-
 userRouter.get('/', async (req, res) => {
     const users = await User.find({}).populate('notes', { note: 1 })
     return res.json(users)
@@ -40,8 +39,7 @@ userRouter.post('/token', (req, res, next) => {
     }
 })
 
-
-userRouter.post('/login', async (req, res) => {
+userRouter.post('/login', async (req, res, next) => {
     const { password, username } = req.body
 
     const user = await User.findOne({ username })
@@ -56,27 +54,39 @@ userRouter.post('/login', async (req, res) => {
     }
     const refreshToken = jwt.sign(userForToken, process.env.REFRESH_KEY);
     const token = jwt.sign(userForToken, process.env.SECRET_KEY, { expiresIn: '30s' })
-    refreshTokens.push(refreshToken)
-    await user.insert
     return res.status(201).json({ token, refreshToken, username: user.username })
 })
 
 //this route is used for registering the user
 //first we hash the user password and save the hashed password to the database using bcrypt
-userRouter.post('/register', async (req, res) => {
+userRouter.post('/register', async (req, res, next) => {
     const { password, username } = req.body
+    try {
+        if (!password || !username) {
+            return res.status(401).send({ error: 'invalid username or password' })
+        }
 
-    const saltRounds = 10
-    const passwordHash = await bcrypt.hash(password, saltRounds)
+        const user = await User.findOne({ username })
 
-    const userObject = {
-        username,
-        passwordHash
+        if (user) {
+            return res.status(401).send({ error: 'user already created' })
+        }
+
+        const saltRounds = 10
+        const passwordHash = await bcrypt.hash(password, saltRounds)
+
+        const userObject = {
+            username,
+            passwordHash
+        }
+
+        const savedUser = await new User(userObject).save()
+        return res.status(201).json(savedUser)
+    } catch (err) {
+        next(err)
     }
 
-    const user = new User(userObject)
-    const savedUser = await user.save()
-    return res.status(201).json(savedUser)
+
 })
 
 module.exports = userRouter

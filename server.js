@@ -19,6 +19,7 @@ app.use('/api/users', userRouter)
 //all the request to /api/notes will be routed to this app
 app.use('/api/notes', notesRouter)
 
+app.use(middleware.unkownEndpoint)
 app.use(middleware.errorHandler)
 
 const server = http.createServer(app)
