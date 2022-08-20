@@ -63,7 +63,7 @@ userRouter.post('/login', async (req, res, next) => {
     //creating refreshtoken and access token using jwt
     const refreshToken = jwt.sign(userForToken, process.env.REFRESH_KEY);
     const token = jwt.sign(userForToken, process.env.SECRET_KEY, { expiresIn: '30s' })
-
+    refreshTokens.push(refreshToken)
     //send tokens to user in response body
     return res.status(201).json({ token, refreshToken, username: user.username })
 })
