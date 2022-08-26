@@ -5,6 +5,6 @@ const client = redis.createClient();
 client
     .connect()
     .then(() => console.log("connected to redis client"))
-    .catch(() => console.log("error while connecting"));
+    .catch((err) => console.log("error while connecting"));
 
 module.exports = client;
