@@ -15,7 +15,7 @@ const uri = process.env.MONGODB_URI;
 mongoose
     .connect(uri)
     .then(() => console.log("connected to mongoDB!"))
-    .catch((err) => console.log("connection failed!"));
+    .catch((err) => console.log("connection failed!", err));
 
 //all the request to /api/users will be routed to this app
 app.use("/api/users", userRouter);

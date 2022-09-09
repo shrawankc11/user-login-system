@@ -25,26 +25,55 @@ userRouter.post("/logout", async (req, res) => {
     return res.status(201).json({ message: "succesfully logged out" });
 });
 
+//function to create accessToken and refreshToken
+//pass num : 1 to get only access token
+//pass num : 2 to get both refresh and access token
+const getToken = (payload, num) => {
+    if (num === 1) {
+        return {
+            token: jwt.sign(payload, process.env.SECRET_KEY, {
+                expiresIn: "45s",
+            })
+        }
+    } else if (num === 2) {
+        return {
+            refreshToken: jwt.sign(payload, process.env.REFRESH_KEY),
+            token: jwt.sign(payload, process.env.SECRET_KEY, {
+                expiresIn: "45s",
+            })
+        }
+    }
+}
+
 //this route handles all our request for new acess tokens
 //we use refresh tokens to create new access tokens
 userRouter.post("/token", async (req, res, next) => {
     const { token } = req.body;
+    let user, newAccessToken;
     if (!token) return res.status(401);
     try {
         const userFromToken = jwt.verify(token, process.env.REFRESH_KEY);
-        const user = await User.findById(userFromToken.id);
-        if (user && user.refreshToken === token) {
-            const newAccessToken = jwt.sign(
-                { username: user.username, id: user._id },
-                process.env.SECRET_KEY,
-                { expiresIn: "30s" }
-            );
-
-            //sending new access tokens to user if the refresh token validates
-            return res.json({ newAccesToken: newAccessToken });
+        const userFromRedis = await client.get(userFromToken.username)
+        if (!userFromRedis) {
+            user = await User.findById(userFromToken.id);
+            if (user && user.refreshToken === token) {
+                newAccessToken = getToken({ username: user.username, id: user._id }, 1)
+                console.log("REDIS HIT: got data from redis")
+                return res.json({ newAccesToken: newAccessToken });
+            } else {
+                return res.status(403).json({ error: "invalid refresh token" });
+            }
         } else {
-            return res.status(403).json({ error: "invalid refresh token" });
+            user = JSON.parse(userFromRedis)
+            if (user.refreshToken === token) {
+                newAccessToken = getToken({ username: user.username, id: user.id }, 1)
+                console.log('REDIS MISS: got data from mongoDB')
+                return res.json({ newAccesToken: newAccessToken });
+            } else {
+                return res.status(403).json({ error: "invalid refresh token" });
+            }
         }
+
     } catch (err) {
         next(err);
     }
@@ -57,27 +86,33 @@ userRouter.post("/login", async (req, res, next) => {
 
     //declaring user and userForToken variable
     //to pass distinct user or token when the database vary
-    let user, userForToken;
+    let user, userForToken, tokens, toRedis;
 
     const userFound = await client.get(username);
 
     //this if statmenet gets executed when redis finds the user
     //we use redis to get the username and password and create a paylod for jwt token
     if (userFound) {
-        console.log("REDIS HIT!");
+        console.log("REDIS HIT: got user data from redis");
         user = JSON.parse(userFound);
-        const passwordFound =
-            user === null ? false : bcrypt.compare(password, user.passwordHash);
+        const passwordFound = user === null ? false : bcrypt.compare(password, user.passwordHash);
         if (passwordFound) {
             userForToken = {
                 username: username,
                 id: user.id,
             };
         }
+        tokens = getToken(userForToken, 2)
+        toRedis = {
+            ...user,
+            ...tokens
+        }
+        client.set(username, JSON.stringify(toRedis))
+
         //this else statement exectues when user isn't found in the redis
         //we use our databse for the jwt payload
     } else {
-        console.log("REDIS MISS!");
+        console.log("REDIS MISS : get user data from mongoDB");
         user = await User.findOne({ username });
         // const passwordFound = user === null ? false : bcrypt.compare(password, user.passwordHash)
         const passwordFound = user
@@ -93,29 +128,26 @@ userRouter.post("/login", async (req, res, next) => {
             username: user.username,
             id: user._id,
         };
-        const toRedis = {
+
+        //since we dont find user information in redis we save it to redis after verifiction in the database
+        tokens = getToken(userForToken, 2)
+        toRedis = {
             passwordHash: user.passwordHash,
             id: user._id,
+            ...tokens
         };
 
         client.set(username, JSON.stringify(toRedis));
     }
-    //creating refreshtoken and access token using jwt
-    const refreshToken = jwt.sign(userForToken, process.env.REFRESH_KEY);
-    const token = jwt.sign(userForToken, process.env.SECRET_KEY, {
-        expiresIn: "45s",
-    });
-
     if (!userFound) {
-        user.refreshToken = refreshToken;
+        user.refreshToken = tokens.refreshToken;
         await user.save();
     }
+
     //send tokens to user in response body
     return res.status(201).json({
-        token,
-        refreshToken,
+        ...tokens,
         userId: user._id,
-        // username: user.username,
     });
 });
 
@@ -150,10 +182,11 @@ userRouter.post("/register", async (req, res, next) => {
         const toRedis = {
             passwordHash,
             id,
+            username,
         };
         //also save to the redis client
         client.set(username, JSON.stringify(toRedis));
-        console.log("REDIS HIT!");
+        console.log("REDIS HIT: saved user data to Redis");
         return res.status(201).json(savedUser);
     } catch (err) {
         next(err);
