@@ -2,7 +2,7 @@
 
 ## UserAuthentication with JsonWebTokens✨✨
 
-JsonWebTokens or JWT are used for authentication and sessions. Like sessions JWT can be used to create user-roles, scopes, sessions similar to traditinal sessions🦾🦾.
+JsonWebTokens or JWT is used for authentication and sessions. Like sessions JWT can be used to create user-roles, scopes, sessions similar to traditinal sessions🦾🦾.
 
 ### What seperates JWT from Sessions??
 
