@@ -2,7 +2,7 @@ const notesRouter = require("express").Router();
 const Note = require("../models/note");
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
-const middleware = require("../utils/middleware");
+const tokenExtractor = require("../middleware/tokenExtractor");
 require("dotenv").config();
 
 notesRouter.get("/", async (req, res) => {
@@ -11,7 +11,7 @@ notesRouter.get("/", async (req, res) => {
 });
 
 //route to handle POST request for new notes
-notesRouter.post("/", middleware.tokenExtractor, async (req, res, next) => {
+notesRouter.post("/", tokenExtractor, async (req, res, next) => {
     const body = req.body;
     try {
         const decodedToken = jwt.verify(req.token, process.env.SECRET_KEY);

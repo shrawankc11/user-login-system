@@ -2,10 +2,11 @@
     "name": "userauth",
     "version": "1.0.0",
     "description": "",
-    "main": "server.js",
+    "main": "index.js",
     "scripts": {
-        "dev": "nodemon server.js",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "dev": "NODE_ENV=development nodemon index.js",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "run-sys" : "NODE_ENV=production node index.js"
     },
     "keywords": [
         "NodeJS",
