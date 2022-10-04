@@ -71,13 +71,13 @@ userRouter.post('/login', cacheLookUp, async (req, res) => {
     const { password, username } = req.body;
 
     const user = await User.findOne({ username });
+    if (!user)
+        return res.status(401).json({ error: 'username did not matched!' });
     const passwordFound = user
-        ? await bcrypt.compare(password, user.passwordHash)
-        : false;
-    if (!user && !passwordFound) {
-        return res
-            .status(401)
-            .json({ error: 'either username or password is not matching' });
+        ? bcrypt.compare(password, user.passwordHash)
+        : null;
+    if (!passwordFound) {
+        return res.status(401).json({ error: 'password did not match' });
     }
 
     userForToken = {
@@ -131,20 +131,15 @@ userRouter.post('/register', async (req, res, next) => {
             username,
             passwordHash,
         };
-
         //create and save user if no prior user with same credentials is found
         const savedUser = await new User(userObject).save();
-        console.log(savedUser);
-        const id = savedUser._id;
-        const toRedis = {
-            passwordHash,
-            id,
-            username,
-        };
+        console.log(JSON.stringify(savedUser));
         //also save to the redis Client
-        client.set(username, JSON.stringify(toRedis));
-        console.log('REDIS HIT: saved user data to Redis');
-        return res.status(201).json(savedUser);
+        client.set(username, JSON.stringify(savedUser));
+        // console.log('saved user data to redis');
+        return res
+            .status(201)
+            .json({ message: 'user creation success!', savedUser });
     } catch (err) {
         next(err);
     }

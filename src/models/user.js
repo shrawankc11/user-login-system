@@ -15,7 +15,6 @@ userSchema.set('toJSON', {
         obj.id = obj._id.toString()
         delete obj._id
         delete obj.__v
-        delete obj.passwordHash
     }
 })
 
