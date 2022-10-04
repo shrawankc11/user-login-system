@@ -1,6 +1,6 @@
 const redisClient = require('../utils/redisClient');
 const bcrypt = require('bcrypt');
-const tokenGen = require('../utils/tokenGen');
+const getToken = require('../utils/tokenGen');
 
 /**
  * middleware to lookup for user in redis before giving off the controller to main controller
@@ -13,7 +13,10 @@ const cacheLookUp = async (err, req, res, next) => {
     try {
         const userFromRedis = await redisClient.get(username);
 
-        if (!userFromRedis) next();
+        if (!userFromRedis) {
+            next();
+            return;
+        }
 
         const user = JSON.parse(userFromRedis);
 
@@ -21,7 +24,7 @@ const cacheLookUp = async (err, req, res, next) => {
             ? await bcrypt.compare(password, user.passwordHash)
             : null;
 
-        if (!userFromRedis && !passwordFromRedis) {
+        if (!passwordFromRedis) {
             return res.status(401).json({ error: 'invalid password!' });
         }
         console.log('redis hit got user data from redis');
@@ -33,7 +36,7 @@ const cacheLookUp = async (err, req, res, next) => {
 
         return res.status(200).json({
             success: true,
-            ...tokenGen(payload, 2),
+            ...getToken(payload, 2),
         });
     } catch (err) {
         next(err);

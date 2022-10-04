@@ -2,7 +2,8 @@ const userRouter = require('express').Router();
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const cacheLookUp = require('../middleware/chacheLookup');
+const cacheLookUp = require('../middleware/cacheLookUp');
+const getToken = require('../utils/tokenGen');
 require('dotenv').config();
 const client = require('../utils/redisClient');
 
@@ -71,8 +72,9 @@ userRouter.post('/login', cacheLookUp, async (req, res) => {
     const { password, username } = req.body;
 
     const user = await User.findOne({ username });
-    if (!user)
+    if (!user) {
         return res.status(401).json({ error: 'username did not matched!' });
+    }
     const passwordFound = user
         ? bcrypt.compare(password, user.passwordHash)
         : null;
@@ -80,30 +82,9 @@ userRouter.post('/login', cacheLookUp, async (req, res) => {
         return res.status(401).json({ error: 'password did not match' });
     }
 
-    userForToken = {
-        username: user.username,
-        id: user._id,
-    };
-
-    //since we dont find user information in redis we save it to redis after verifiction in the database
-    tokens = getToken(userForToken, 2);
-    toRedis = {
-        passwordHash: user.passwordHash,
-        id: user._id,
-        ...tokens,
-    };
-
-    client.set(username, JSON.stringify(toRedis));
-
-    if (!userFound) {
-        user.refreshToken = tokens.refreshToken;
-        await user.save();
-    }
-
-    //send tokens to user in response body
-    return res.status(201).json({
-        ...tokens,
-        userId: user._id,
+    return res.status(200).json({
+        success: true,
+        ...getToken({ username: user.username, id: user._id }, 2),
     });
 });
 
