@@ -3,11 +3,11 @@ const bcrypt = require('bcrypt');
 const getToken = require('../utils/tokenGen');
 
 /**
- * middleware to lookup for user in redis before giving off the controller to main controller
+ * middleware to lookup for user in redis before giving off the control to main controller
  * pass controll if not found with username
  * thorw error if not found with both username and password
  */
-const cacheLookUp = async (err, req, res, next) => {
+const cacheLookUp = async (req, res, next) => {
     const { username, password } = req.body;
 
     try {

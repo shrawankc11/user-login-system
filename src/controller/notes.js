@@ -1,22 +1,21 @@
-const notesRouter = require("express").Router();
-const Note = require("../models/note");
-const User = require("../models/user");
-const jwt = require("jsonwebtoken");
-const tokenExtractor = require("../middleware/tokenExtractor");
-require("dotenv").config();
+const notesRouter = require('express').Router();
+const Note = require('../models/note');
+const User = require('../models/user');
+const tokenVerifier = require('../middleware/tokenVerifier');
+require('dotenv').config();
 
-notesRouter.get("/", async (req, res) => {
-    const notes = await Note.find({}).populate("user", { username: 1 });
+notesRouter.get('/', async (req, res) => {
+    const notes = await Note.find({}).populate('user', { username: 1 });
     return res.json(notes);
 });
 
 //route to handle POST request for new notes
-notesRouter.post("/", tokenExtractor, async (req, res, next) => {
+notesRouter.post('/', tokenVerifier, async (req, res, next) => {
     const body = req.body;
     try {
-        const decodedToken = jwt.verify(req.token, process.env.SECRET_KEY);
+        const userFromToken = req.user;
 
-        const user = await User.findById(decodedToken.id);
+        const user = await User.findById(userFromToken.id);
 
         const noteObj = {
             note: body.note,

@@ -1,11 +1,11 @@
 const userRouter = require('express').Router();
 const User = require('../models/user');
-const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const cacheLookUp = require('../middleware/cacheLookUp');
 const getToken = require('../utils/tokenGen');
 require('dotenv').config();
 const client = require('../utils/redisClient');
+const tokenVerifier = require('../middleware/tokenVerifier');
 
 userRouter.get('/', async (req, res) => {
     const users = await User.find({}).populate('notes', { note: 1 });
@@ -29,36 +29,27 @@ userRouter.post('/logout', async (req, res) => {
 
 //this route handles all our request for new acess tokens
 //we use refresh tokens to create new access tokens
-userRouter.post('/token', async (req, res, next) => {
-    const { token } = req.body;
+userRouter.post('/token', tokenVerifier, async (req, res, next) => {
     let user, newAccessToken;
-    if (!token) return res.status(401);
+    const { token } = req.body
     try {
-        const userFromToken = jwt.verify(token, process.env.REFRESH_KEY);
+        const userFromToken = req.user;
         const userFromRedis = await client.get(userFromToken.username);
         if (!userFromRedis) {
             user = await User.findById(userFromToken.id);
             if (user && user.refreshToken === token) {
-                newAccessToken = getToken(
-                    { username: user.username, id: user._id },
-                    1
-                );
-                console.log('REDIS HIT: got data from redis');
+                newAccessToken = getToken({ username: user.username, id: user._id }, 1);
                 return res.json({ newAccesToken: newAccessToken });
             } else {
-                return res.status(403).json({ error: 'invalid refresh token' });
+                return res.status(403).json({ error: 'invalid refresh token!' });
             }
         } else {
             user = JSON.parse(userFromRedis);
             if (user.refreshToken === token) {
-                newAccessToken = getToken(
-                    { username: user.username, id: user.id },
-                    1
-                );
-                console.log('REDIS MISS: got data from mongoDB');
+                newAccessToken = getToken({ username: user.username, id: user.id }, 1);
                 return res.json({ newAccesToken: newAccessToken });
             } else {
-                return res.status(403).json({ error: 'invalid refresh token' });
+                return res.status(403).json({ error: 'invalid refresh token!' });
             }
         }
     } catch (err) {
@@ -82,9 +73,15 @@ userRouter.post('/login', cacheLookUp, async (req, res) => {
         return res.status(401).json({ error: 'password did not match' });
     }
 
+    const payload = { username: user.username, id: user._id };
+    const { refreshToken } = getToken(payload, 2);
+    user.refreshToken = refreshToken;
+    await user.save();
+    await client.set(username, JSON.stringify(user));
     return res.status(200).json({
         success: true,
-        ...getToken({ username: user.username, id: user._id }, 2),
+        message: 'saved refresh token to users document!',
+        ...getToken(payload, 2),
     });
 });
 
@@ -114,9 +111,8 @@ userRouter.post('/register', async (req, res, next) => {
         };
         //create and save user if no prior user with same credentials is found
         const savedUser = await new User(userObject).save();
-        console.log(JSON.stringify(savedUser));
         //also save to the redis Client
-        client.set(username, JSON.stringify(savedUser));
+        await client.set(username, JSON.stringify(savedUser));
         // console.log('saved user data to redis');
         return res
             .status(201)
