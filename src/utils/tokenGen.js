@@ -1,3 +1,5 @@
+const jwt = require('jsonwebtoken');
+
 /**
  * create access and refresh token
  * pass num : 1 for only accessToken
@@ -17,9 +19,11 @@ const getToken = (payload, num) => {
     } else if (num === 2) {
         return {
             refreshToken: jwt.sign(payload, process.env.REFRESH_KEY),
-            token: jwt.sign(payload, process.env.SECRET_KEY, {
+            accessToken: jwt.sign(payload, process.env.SECRET_KEY, {
                 expiresIn: '1m',
             }),
         };
     }
 };
+
+module.exports = getToken;
