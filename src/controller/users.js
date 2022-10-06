@@ -1,7 +1,7 @@
 const userRouter = require('express').Router();
 const User = require('../models/user');
 const bcrypt = require('bcrypt');
-const cacheLookUp = require('../middleware/cacheLookUp');
+const userCacheLookup = require('../middleware/userCacheLookup');
 const getToken = require('../utils/tokenGen');
 const client = require('../utils/redisClient');
 const tokenVerifier = require('../middleware/tokenVerifier');
@@ -33,8 +33,11 @@ userRouter.post('/logout', async (req, res, next) => {
 
 });
 
-//this route handles all our request for new acess tokens
-//we use refresh tokens to create new access tokens
+/**
+ * @param {Func} tokenVerifier
+ * @param {Func} refreshTokenVerifier
+ * @return {Response} 
+ */
 userRouter.post('/token', tokenVerifier, async (req, res, next) => {
     let user;
     req.token = req.body.token;
@@ -55,9 +58,12 @@ userRouter.post('/token', tokenVerifier, async (req, res, next) => {
     }
 }, refreshTokenVerifier);
 
-//when user sends request to /login this router will handle the request
-
-userRouter.post('/login', cacheLookUp, async (req, res) => {
+//handles all request to the /login route
+/**
+ * @param {Func} userCacheLookup
+ * @return {Response}
+ */
+userRouter.post('/login', userCacheLookup, async (req, res) => {
     const { password, username } = req.body;
 
     const user = await User.findOne({ username });

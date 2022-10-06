@@ -8,7 +8,7 @@ const client = require('../utils/redisClient');
  * pass controll if not found with username
  * thorw error if not found with both username and password
  */
-const cacheLookUp = async (req, res, next) => {
+const userCacheLookup = async (req, res, next) => {
     const { username, password } = req.body;
 
     try {
@@ -44,4 +44,4 @@ const cacheLookUp = async (req, res, next) => {
     }
 };
 
-module.exports = cacheLookUp;
+module.exports = userCacheLookup;

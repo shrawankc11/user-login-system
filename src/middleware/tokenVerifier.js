@@ -1,6 +1,11 @@
 const jwt = require('jsonwebtoken');
 const { SECRET_KEY } = require('../configs/config');
 
+/**
+ * verify and unpack the obj with token sent from user
+ * if error we sent an error response
+ * else we send the control to next main controller
+ */
 const tokenVerifier = (req, res, next) => {
     try {
         let token = req.get('authorization');
