@@ -1,6 +1,7 @@
 const redisClient = require('../utils/redisClient');
 const bcrypt = require('bcrypt');
 const getToken = require('../utils/tokenGen');
+const client = require('../utils/redisClient');
 
 /**
  * middleware to lookup for user in redis before giving off the control to main controller
@@ -27,16 +28,16 @@ const cacheLookUp = async (req, res, next) => {
         if (!passwordFromRedis) {
             return res.status(401).json({ error: 'invalid password!' });
         }
-        console.log('redis hit got user data from redis');
 
-        const payload = {
-            username: user.username,
-            id: user.id,
-        };
+        const { refreshToken, accessToken } = getToken({ username: user.username, id: user.id }, 2)
+        user.refreshToken = refreshToken;
+        await client.set(username, JSON.stringify(user), { EX: 180 })
 
         return res.status(200).json({
             success: true,
-            ...getToken(payload, 2),
+            fromCache: true,
+            refreshToken,
+            accessToken
         });
     } catch (err) {
         next(err);
