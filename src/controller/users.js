@@ -22,10 +22,12 @@ userRouter.post('/logout', async (req, res, next) => {
     try {
         const user = await User.findById(req.body.id);
         if (user) {
+            //when user loggs out we clear the refreshtoken property from user
+            //thus ending the current session and saving after removing it
             user.refreshToken = undefined;
             await user.save()
         };
-        // refreshTokens = refreshTokens.filter(token => token !== req.body.token)
+
         return res.status(201).json({ message: 'succesfully logged out' });
     } catch (err) {
         next(err);
@@ -40,17 +42,23 @@ userRouter.post('/logout', async (req, res, next) => {
  */
 userRouter.post('/token', tokenVerifier, async (req, res, next) => {
     let user;
+    //appending the token from body of the request to the request object itself
+    //so that we can use it in our *refreshTokenVerifier* handler 
     req.token = req.body.token;
     try {
+        //accessing the user object that we passed from *tokenVerifier* handler
         const userFromToken = req.user;
         const userFromRedis = await client.get(userFromToken.username);
-        if (!userFromRedis) {
+        //if user is found in redis then we send that user object to the next controller
+        if (userFromRedis) {
+            user = JSON.parse(userFromRedis);
+            //the fromCache property is to let the client know if the response is from cache or from disk
+            [req.user, req.fromCache] = [user, true];
+            next();
+            //if user is not found in redis then we get the user from mongodb and send that user object
+        } else {
             user = await User.findById(userFromToken.id);
             [req.user, req.fromCache] = [user, false];
-            next();
-        } else {
-            user = JSON.parse(userFromRedis);
-            [req.user, req.fromCache] = [user, true];
             next();
         }
     } catch (err) {
@@ -66,6 +74,7 @@ userRouter.post('/token', tokenVerifier, async (req, res, next) => {
 userRouter.post('/login', userCacheLookup, async (req, res) => {
     const { password, username } = req.body;
 
+    //checking mongodb for user
     const user = await User.findOne({ username });
     if (!user) {
         return res.status(401).json({ error: 'username did not matched!' });
@@ -77,9 +86,14 @@ userRouter.post('/login', userCacheLookup, async (req, res) => {
         return res.status(401).json({ error: 'password did not match' });
     }
 
+    //generate both accesstoken and refresh token
     const { refreshToken, accessToken } = getToken({ username: user.username, id: user._id }, 2);
+    //append refreshtoken to the user object from mongodb
     user.refreshToken = refreshToken;
+    //after appending the refresh token we save the user to mogodb
+    //this returns a unique user id and saved refresh token as the users properties
     const savedUser = await user.save();
+    //saving the savedUser object we got from mongodb to redis 
     await client.set(username, JSON.stringify(savedUser), { EX: 180 });
     return res.status(200).json({
         success: true,
