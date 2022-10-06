@@ -47,8 +47,7 @@ userRouter.post('/token', tokenVerifier, async (req, res, next) => {
             next();
         } else {
             user = JSON.parse(userFromRedis);
-            req.user = user;
-            req.fromCache = true;
+            [req.user, req.fromCache] = [user, true];
             next();
         }
     } catch (err) {
