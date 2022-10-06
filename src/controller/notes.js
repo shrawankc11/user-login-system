@@ -2,7 +2,6 @@ const notesRouter = require('express').Router();
 const Note = require('../models/note');
 const User = require('../models/user');
 const tokenVerifier = require('../middleware/tokenVerifier');
-require('dotenv').config();
 
 notesRouter.get('/', async (req, res) => {
     const notes = await Note.find({}).populate('user', { username: 1 });
