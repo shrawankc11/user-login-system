@@ -6,6 +6,8 @@ const getToken = require('../utils/tokenGen');
 const client = require('../utils/redisClient');
 const tokenVerifier = require('../middleware/tokenVerifier');
 const refreshTokenVerifier = require('../middleware/refreshTokenVerifier');
+
+
 userRouter.get('/', async (req, res) => {
     const users = await User.find({}).populate('notes', { note: 1 });
     return res.json(users);
@@ -32,7 +34,6 @@ userRouter.post('/logout', async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-
 });
 
 /**
