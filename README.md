@@ -1,4 +1,4 @@
 # user-authentication-jwt
 
-## user authentication with JSON Webtokens and redis cache
+## User authentication system. Implementation in Node JS and using Flask (python).
 
