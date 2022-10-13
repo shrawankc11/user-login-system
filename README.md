@@ -14,3 +14,5 @@
 - refresh tokens, create refresh tokens to constantly update access tokens
 - cache for faster response
 - role based authentication and authorization (working on it...)
+
+> flask implementaion coming soon...
