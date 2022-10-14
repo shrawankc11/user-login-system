@@ -1,6 +1,6 @@
 # user-login-sys
 
-## User authentication system. Implementation in Node JS and Flask (python).
+## User authentication system. Backend implementation in Node JS and Flask (python).
 
 ### requirements to run:-
 > - redis connection either local or from a client
