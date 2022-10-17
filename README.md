@@ -5,7 +5,7 @@
 ### requirements to run:-
 > - redis connection either local or from a client
 > - mongodb connection
-> - matching configs to the config file
+> - matching/similar configs to the config file
 
 ### to get started:-
 > - clone the repo 
