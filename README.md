@@ -1,6 +1,6 @@
 # user-login-sys
 
-## User authentication system. Backend implementation in Node JS and Flask (python).
+## User authentication system. Backend implementation in Node JS and FastAPI (python).
 
 ### requirements to run:-
 > - redis connection either local or from a client
@@ -16,4 +16,4 @@
 > - cache for faster response
 > - role based authentication and authorization (working on it...)
 
-> flask implementaion coming soon...
+> fast-api implementaion coming soon...
